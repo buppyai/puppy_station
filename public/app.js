@@ -22,7 +22,10 @@ async function init() {
     agents = await res.json();
     console.log('Fetched agents:', agents.length);
     renderAgents();
-    
+
+    // Fetch activities for all agents
+    await renderActivities();
+
     // Fetch reviews
     const reviewsRes = await fetch('/api/reviews');
     reviews = await reviewsRes.json();
@@ -88,7 +91,7 @@ function renderReviews() {
     list.innerHTML = '<div class="empty-state">No questions pending review</div>';
     return;
   }
-  
+
   let html = '';
   for (const r of reviews) {
     html += '<div class="review-item">';
@@ -98,6 +101,48 @@ function renderReviews() {
     html += '<div class="review-meta">';
     html += '<span class="review-agent">' + r.agentName + '</span>';
     html += '<span class="review-priority">' + r.priority + '</span>';
+    html += '</div></div></div>';
+  }
+  list.innerHTML = html;
+}
+
+async function renderActivities() {
+  const list = document.getElementById('activityList');
+  if (!list) return;
+
+  // Collect activities from all agents
+  let allActivities = [];
+  for (const agent of agents) {
+    try {
+      const res = await fetch('/api/agents/' + agent.id + '/activity');
+      const activities = await res.json();
+      for (const act of activities) {
+        allActivities.push({ ...act, agentName: agent.name, agentEmoji: agent.emoji });
+      }
+    } catch (e) {
+      console.error('Failed to fetch activities for', agent.id, e);
+    }
+  }
+
+  // Sort by timestamp (newest first)
+  allActivities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if (allActivities.length === 0) {
+    list.innerHTML = '<div class="empty-state">No recent activity</div>';
+    return;
+  }
+
+  let html = '';
+  for (const act of allActivities.slice(0, 10)) {
+    const time = new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    html += '<div class="activity-item">';
+    html += '<span class="activity-emoji">' + (act.agentEmoji || '🐕') + '</span>';
+    html += '<div class="activity-content">';
+    html += '<div class="activity-desc">' + act.description + '</div>';
+    html += '<div class="activity-meta">';
+    html += '<span class="activity-agent">' + act.agentName + '</span>';
+    html += '<span class="activity-type">' + act.type + '</span>';
+    html += '<span class="activity-time">' + time + '</span>';
     html += '</div></div></div>';
   }
   list.innerHTML = html;
