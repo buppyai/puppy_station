@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Direct Test</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { padding: 20px; background: #f6f0e2; color: #241124; font-family: 'Rethink Sans', sans-serif; }
+    .test-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Direct Render Test</h1>
+  <button onclick="render()">Render Agents</button>
+  <div id="test"></div>
+  <div class="test-grid" id="grid"></div>
+  
+  <script>
+    const agents = [
+      {id:'buppy', name:'Buppy', emoji:'🐕', role:'Primary Coordinator', summary:'Test work', status:'active', model:'moonshot/kimi-k2.5'},
+      {id:'zoomie', name:'Zoomie', emoji:'⚡', role:'AIGIS Lead', summary:'Test work 2', status:'active', model:'nvidia/kimi-k2.5'},
+      {id:'mechly', name:'Mechly', emoji:'🔧', role:'Tool Builder', summary:'Test work 3', status:'active', model:'moonshot/kimi-k2.5'}
+    ];
+    
+    function render() {
+      const grid = document.getElementById('grid');
+      const test = document.getElementById('test');
+      
+      let html = '';
+      for (const agent of agents) {
+        html += '<article class="agent-card ' + agent.id + '">';
+        html += '<div class="agent-header">';
+        html += '<span class="agent-avatar">' + agent.emoji + '</span>';
+        html += '<div class="agent-info"><h3>' + agent.name + '</h3></div>';
+        html += '</div>';
+        html += '<div class="agent-role-section">';
+        html += '<div class="agent-role-label">Current Role</div>';
+        html += '<div class="agent-role">' + agent.role + '</div>';
+        html += '</div>';
+        html += '<div class="agent-work-section">';
+        html += '<div class="agent-work-label">🎯 Currently Working On</div>';
+        html += '<div class="agent-work-content">' + agent.summary + '</div>';
+        html += '</div>';
+        html += '</article>';
+      }
+      
+      grid.innerHTML = html;
+      test.textContent = 'Rendered ' + agents.length + ' agents, HTML length: ' + html.length;
+    }
+    
+    // Auto render after 1 second
+    setTimeout(render, 1000);
+  </script>
+</body>
+</html>

@@ -1,349 +1,114 @@
-// Puppy Station Dashboard
-class PuppyStation {
-  constructor() {
-    this.ws = null;
-    this.agents = [];
-    this.activities = [];
-    this.reviews = [];
-    this.darkMode = localStorage.getItem('darkMode') === 'true';
-    this.init();
-  }
+// Simple direct approach
+let agents = [];
+let reviews = [];
 
-  init() {
-    this.setupTheme();
-    this.connectWebSocket();
-    this.setupEventListeners();
-    this.fetchInitialData();
+// Init
+async function init() {
+  // Theme
+  const darkMode = localStorage.getItem('darkMode') === 'true';
+  if (darkMode) document.documentElement.setAttribute('data-theme', 'dark');
+  
+  // Toggle
+  document.getElementById('themeToggle').addEventListener('click', () => {
+    const isDark = document.documentElement.hasAttribute('data-theme');
+    if (isDark) document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('darkMode', !isDark);
+  });
+  
+  // Fetch agents
+  try {
+    const res = await fetch('/api/agents');
+    agents = await res.json();
+    console.log('Fetched agents:', agents.length);
+    renderAgents();
     
-    // Refresh system metrics every 5 seconds
-    setInterval(() => this.fetchSystemMetrics(), 5000);
-  }
-
-  setupTheme() {
-    if (this.darkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    }
-    this.updateThemeIcon();
-  }
-
-  setupEventListeners() {
-    document.getElementById('themeToggle').addEventListener('click', () => {
-      this.toggleTheme();
-    });
-  }
-
-  toggleTheme() {
-    this.darkMode = !this.darkMode;
-    localStorage.setItem('darkMode', this.darkMode);
+    // Fetch reviews
+    const reviewsRes = await fetch('/api/reviews');
+    reviews = await reviewsRes.json();
+    renderReviews();
     
-    if (this.darkMode) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-    }
-    
-    this.updateThemeIcon();
+    // Fetch system
+    const sysRes = await fetch('/api/system');
+    const sysData = await sysRes.json();
+    updateSystem(sysData);
+  } catch (err) {
+    console.error('Error:', err);
+    document.getElementById('debug-info').textContent = 'Error: ' + err.message;
   }
-
-  updateThemeIcon() {
-    const icon = document.querySelector('.theme-icon');
-    icon.textContent = this.darkMode ? '☀️' : '🌙';
-  }
-
-  connectWebSocket() {
-    const wsUrl = `ws://${window.location.host}/ws`;
-    this.ws = new WebSocket(wsUrl);
-
-    this.ws.onopen = () => {
-      console.log('🐕 Connected to Puppy Station');
-      this.updateConnectionStatus(true);
-    };
-
-    this.ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      this.handleWebSocketMessage(data);
-    };
-
-    this.ws.onclose = () => {
-      console.log('Disconnected from Puppy Station');
-      this.updateConnectionStatus(false);
-      // Reconnect after 3 seconds
-      setTimeout(() => this.connectWebSocket(), 3000);
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-  }
-
-  handleWebSocketMessage(data) {
-    switch (data.type) {
-      case 'init':
-        this.agents = data.agents;
-        this.reviews = data.reviews || [];
-        this.renderAgents();
-        this.renderReviews();
-        break;
-      case 'activity':
-        this.addActivity(data.agentId, data.activity);
-        break;
-      case 'summary':
-        this.updateAgentSummary(data.agentId, data.summary);
-        break;
-      case 'system':
-        this.updateSystemMetrics(data.data);
-        break;
-      case 'review':
-        this.addReview(data.review);
-        break;
-    }
-  }
-
-  updateConnectionStatus(connected) {
-    const status = document.getElementById('connectionStatus');
-    status.style.color = connected ? '#3ddc84' : '#ff4444';
-  }
-
-  async fetchInitialData() {
-    try {
-      const [agentsRes, systemRes] = await Promise.all([
-        fetch('/api/agents'),
-        fetch('/api/system')
-      ]);
-
-      this.agents = await agentsRes.json();
-      const systemData = await systemRes.json();
-
-      this.renderAgents();
-      this.updateSystemMetrics(systemData);
-      
-      // Fetch recent activities from all agents
-      this.fetchAllActivities();
-      
-      // Fetch pending reviews
-      this.fetchReviews();
-    } catch (err) {
-      console.error('Failed to fetch initial data:', err);
-    }
-  }
-
-  async fetchReviews() {
-    try {
-      const res = await fetch('/api/reviews');
-      this.reviews = await res.json();
-      this.renderReviews();
-    } catch (err) {
-      console.error('Failed to fetch reviews:', err);
-    }
-  }
-
-  async fetchAllActivities() {
-    const activities = [];
-    
-    for (const agent of this.agents) {
-      try {
-        const res = await fetch(`/api/agents/${agent.id}/activity`);
-        const agentActivities = await res.json();
-        
-        agentActivities.forEach(act => {
-          activities.push({
-            ...act,
-            agentId: agent.id,
-            agentName: agent.name,
-            agentEmoji: agent.emoji
-          });
-        });
-      } catch (err) {
-        console.error(`Failed to fetch activities for ${agent.id}:`, err);
-      }
-    }
-
-    // Sort by timestamp descending
-    activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    this.activities = activities.slice(0, 10);
-    this.renderActivities();
-  }
-
-  async fetchSystemMetrics() {
+  
+  // Refresh system every 5s
+  setInterval(async () => {
     try {
       const res = await fetch('/api/system');
-      const data = await res.json();
-      this.updateSystemMetrics(data);
-    } catch (err) {
-      console.error('Failed to fetch system metrics:', err);
-    }
-  }
-
-  renderAgents() {
-    const grid = document.getElementById('agentsGrid');
-    
-    grid.innerHTML = this.agents.map(agent => `
-      <article class="agent-card ${agent.id}" data-agent-id="${agent.id}">
-        <div class="agent-header">
-          <span class="agent-avatar">${agent.emoji}</span>
-          <div class="agent-info">
-            <h3>${agent.name}</h3>
-          </div>
-          <span class="agent-status">
-            <span class="status-dot"></span>
-            ${agent.status}
-          </span>
-        </div>
-        
-        <div class="agent-role-section">
-          <div class="agent-role-label">Current Role</div>
-          <div class="agent-role">${agent.role}</div>
-        </div>
-        
-        <div class="agent-work-section">
-          <div class="agent-work-label">🎯 Currently Working On</div>
-          <div class="agent-work-content">${agent.summary || 'No current activity'}</div>
-        </div>
-        
-        <div class="agent-meta">
-          <span>🤖 ${agent.model.split('/')[1] || agent.model}</span>
-          <span>📁 ${this.shortenPath(agent.workspace)}</span>
-        </div>
-      </article>
-    `).join('');
-  }
-
-  renderAgentActivities(activities) {
-    if (!activities || activities.length === 0) {
-      return '<div class="empty-state">No recent activity</div>';
-    }
-
-    const activityIcons = {
-      command: '⚡',
-      file_update: '📝',
-      soul_update: '💜',
-      identity_update: '🆔',
-      config_update: '⚙️',
-      memory_update: '🧠'
-    };
-
-    return activities.map(act => `
-      <div class="activity-item">
-        <span class="activity-icon">${activityIcons[act.type] || '•'}</span>
-        <span class="activity-text">${act.description}</span>
-        <span class="activity-time">${this.formatTime(act.timestamp)}</span>
-      </div>
-    `).join('');
-  }
-
-  renderActivities() {
-    const list = document.getElementById('activityList');
-    
-    if (this.activities.length === 0) {
-      list.innerHTML = '<div class="empty-state">No recent activity</div>';
-      return;
-    }
-
-    const activityIcons = {
-      command: '⚡',
-      file_update: '📝',
-      soul_update: '💜',
-      identity_update: '🆔',
-      config_update: '⚙️',
-      memory_update: '🧠'
-    };
-
-    list.innerHTML = this.activities.map(act => `
-      <div class="activity-row">
-        <span class="activity-agent">${act.agentEmoji} ${act.agentName}</span>
-        <span class="activity-desc">${act.description}</span>
-        <span class="activity-type">${act.type.replace('_', ' ')}</span>
-      </div>
-    `).join('');
-  }
-
-  renderReviews() {
-    const list = document.getElementById('reviewList');
-    
-    if (this.reviews.length === 0) {
-      list.innerHTML = '<div class="empty-state">No questions pending review</div>';
-      return;
-    }
-
-    list.innerHTML = this.reviews.map(review => `
-      <div class="review-item" data-review-id="${review.id}">
-        <span class="review-avatar">${review.agentEmoji}</span>
-        <div class="review-content">
-          <div class="review-question">${review.question}</div>
-          <div class="review-meta">
-            <span class="review-agent">${review.agentName}</span>
-            <span class="review-time">${this.formatTime(review.timestamp)}</span>
-            <span class="review-priority">${review.priority}</span>
-          </div>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  addReview(review) {
-    this.reviews.unshift(review);
-    this.reviews = this.reviews.slice(0, 10); // Keep last 10
-    this.renderReviews();
-  }
-
-  addActivity(agentId, activity) {
-    const agent = this.agents.find(a => a.id === agentId);
-    if (!agent) return;
-
-    // Add to agent's activities
-    if (!agent.activities) agent.activities = [];
-    agent.activities.unshift(activity);
-    agent.activities = agent.activities.slice(0, 50);
-
-    // Add to global activities
-    this.activities.unshift({
-      ...activity,
-      agentId,
-      agentName: agent.name,
-      agentEmoji: agent.emoji
-    });
-    this.activities = this.activities.slice(0, 20);
-
-    // Re-render
-    this.renderAgents();
-    this.renderActivities();
-  }
-
-  updateAgentSummary(agentId, summary) {
-    const agent = this.agents.find(a => a.id === agentId);
-    if (agent) {
-      agent.summary = summary;
-      this.renderAgents();
-    }
-  }
-
-  updateSystemMetrics(data) {
-    document.getElementById('cpuUsage').textContent = `${data.cpu.usage}%`;
-    document.getElementById('memUsage').textContent = `${data.memory.used}/${data.memory.total} GB`;
-    document.getElementById('tokenUsage').textContent = data.tokens?.toLocaleString() || '0';
-    
-    const cpuProgress = document.getElementById('cpuProgress');
-    cpuProgress.style.width = `${Math.min(data.cpu.usage, 100)}%`;
-  }
-
-  shortenPath(path) {
-    if (!path) return '';
-    return path.replace(require('os').homedir(), '~');
-  }
-
-  formatTime(timestamp) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = (now - date) / 1000;
-
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return `${Math.floor(diff / 86400)}d ago`;
-  }
+      updateSystem(await res.json());
+    } catch (e) {}
+  }, 5000);
 }
 
-// Initialize dashboard when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  new PuppyStation();
-});
+function renderAgents() {
+  const grid = document.getElementById('agentsGrid');
+  const debug = document.getElementById('debug-info');
+  
+  if (debug) debug.textContent = `Rendering ${agents.length} agents...`;
+  
+  if (!agents || agents.length === 0) {
+    grid.innerHTML = '<div class="empty-state">No agents found</div>';
+    return;
+  }
+  
+  let html = '';
+  for (const agent of agents) {
+    const modelName = agent.model ? (agent.model.split('/')[1] || agent.model) : 'Unknown';
+    html += '<article class="agent-card ' + agent.id + '">';
+    html += '<div class="agent-header">';
+    html += '<span class="agent-avatar">' + (agent.emoji || '🐕') + '</span>';
+    html += '<div class="agent-info"><h3>' + agent.name + '</h3></div>';
+    html += '<span class="agent-status"><span class="status-dot"></span>' + agent.status + '</span>';
+    html += '</div>';
+    html += '<div class="agent-role-section">';
+    html += '<div class="agent-role-label">Current Role</div>';
+    html += '<div class="agent-role">' + agent.role + '</div>';
+    html += '</div>';
+    html += '<div class="agent-work-section">';
+    html += '<div class="agent-work-label">🎯 Currently Working On</div>';
+    html += '<div class="agent-work-content">' + (agent.summary || 'No activity') + '</div>';
+    html += '</div>';
+    html += '<div class="agent-meta"><span>🤖 ' + modelName + '</span></div>';
+    html += '</article>';
+  }
+  
+  grid.innerHTML = html;
+  if (debug) debug.textContent = `Showing ${agents.length} agents`;
+}
+
+function renderReviews() {
+  const list = document.getElementById('reviewList');
+  if (!reviews || reviews.length === 0) {
+    list.innerHTML = '<div class="empty-state">No questions pending review</div>';
+    return;
+  }
+  
+  let html = '';
+  for (const r of reviews) {
+    html += '<div class="review-item">';
+    html += '<span class="review-avatar">' + r.agentEmoji + '</span>';
+    html += '<div class="review-content">';
+    html += '<div class="review-question">' + r.question + '</div>';
+    html += '<div class="review-meta">';
+    html += '<span class="review-agent">' + r.agentName + '</span>';
+    html += '<span class="review-priority">' + r.priority + '</span>';
+    html += '</div></div></div>';
+  }
+  list.innerHTML = html;
+}
+
+function updateSystem(data) {
+  document.getElementById('cpuUsage').textContent = data.cpu.usage + '%';
+  document.getElementById('memUsage').textContent = data.memory.used + '/' + data.memory.total + ' GB';
+  document.getElementById('tokenUsage').textContent = (data.tokens || 0).toLocaleString();
+  document.getElementById('cpuProgress').style.width = Math.min(data.cpu.usage, 100) + '%';
+}
+
+// Start
+document.addEventListener('DOMContentLoaded', init);

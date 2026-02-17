@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .card { background: #7ab6a9; padding: 20px; margin: 10px; border-radius: 16px; color: #eff2f3; }
+  </style>
+</head>
+<body>
+  <h1>Agent Test</h1>
+  <div id="test"></div>
+  <script>
+    fetch('/api/agents')
+      .then(r => r.json())
+      .then(agents => {
+        document.getElementById('test').innerHTML = agents.map(a => 
+          `<div class="card"><h2>${a.emoji} ${a.name}</h2><p>Role: ${a.role}</p><p>Work: ${a.summary}</p></div>`
+        ).join('');
+      });
+  </script>
+</body>
+</html>

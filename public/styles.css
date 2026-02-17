@@ -223,6 +223,10 @@ body {
   margin-top: 0.5rem;
 }
 
+.agent-role-section {
+  margin: 0.5rem 0;
+}
+
 .agent-role-label {
   font-size: 0.75rem;
   text-transform: uppercase;
