@@ -4,6 +4,7 @@ class PuppyStation {
     this.ws = null;
     this.agents = [];
     this.activities = [];
+    this.reviews = [];
     this.darkMode = localStorage.getItem('darkMode') === 'true';
     this.init();
   }
@@ -79,7 +80,9 @@ class PuppyStation {
     switch (data.type) {
       case 'init':
         this.agents = data.agents;
+        this.reviews = data.reviews || [];
         this.renderAgents();
+        this.renderReviews();
         break;
       case 'activity':
         this.addActivity(data.agentId, data.activity);
@@ -89,6 +92,9 @@ class PuppyStation {
         break;
       case 'system':
         this.updateSystemMetrics(data.data);
+        break;
+      case 'review':
+        this.addReview(data.review);
         break;
     }
   }
@@ -113,8 +119,21 @@ class PuppyStation {
       
       // Fetch recent activities from all agents
       this.fetchAllActivities();
+      
+      // Fetch pending reviews
+      this.fetchReviews();
     } catch (err) {
       console.error('Failed to fetch initial data:', err);
+    }
+  }
+
+  async fetchReviews() {
+    try {
+      const res = await fetch('/api/reviews');
+      this.reviews = await res.json();
+      this.renderReviews();
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
     }
   }
 
@@ -236,6 +255,35 @@ class PuppyStation {
         <span class="activity-type">${act.type.replace('_', ' ')}</span>
       </div>
     `).join('');
+  }
+
+  renderReviews() {
+    const list = document.getElementById('reviewList');
+    
+    if (this.reviews.length === 0) {
+      list.innerHTML = '<div class="empty-state">No questions pending review</div>';
+      return;
+    }
+
+    list.innerHTML = this.reviews.map(review => `
+      <div class="review-item" data-review-id="${review.id}">
+        <span class="review-avatar">${review.agentEmoji}</span>
+        <div class="review-content">
+          <div class="review-question">${review.question}</div>
+          <div class="review-meta">
+            <span class="review-agent">${review.agentName}</span>
+            <span class="review-time">${this.formatTime(review.timestamp)}</span>
+            <span class="review-priority">${review.priority}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  addReview(review) {
+    this.reviews.unshift(review);
+    this.reviews = this.reviews.slice(0, 10); // Keep last 10
+    this.renderReviews();
   }
 
   addActivity(agentId, activity) {

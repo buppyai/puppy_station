@@ -78,6 +78,83 @@ function writeAgents(data) {
   fs.writeFileSync(agentsPath, JSON.stringify(data, null, 2));
 }
 
+// Reviews data
+const reviewsPath = path.join(DATA_DIR, 'reviews.json');
+if (!fs.existsSync(reviewsPath)) {
+  const initialReviews = {
+    reviews: [
+      {
+        id: '1',
+        agentId: 'zoomie',
+        agentName: 'Zoomie',
+        agentEmoji: '⚡',
+        question: 'Should we use SwiftUI or UIKit for the AIGIS iOS enforcement module?',
+        priority: 'high',
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      },
+      {
+        id: '2',
+        agentId: 'mechly',
+        agentName: 'Mechly',
+        agentEmoji: '🔧',
+        question: 'What database should we use for the agent session storage - SQLite or PostgreSQL?',
+        priority: 'medium',
+        status: 'pending',
+        timestamp: new Date(Date.now() - 3600000).toISOString()
+      }
+    ]
+  };
+  fs.writeFileSync(reviewsPath, JSON.stringify(initialReviews, null, 2));
+}
+
+function readReviews() {
+  return JSON.parse(fs.readFileSync(reviewsPath, 'utf8'));
+}
+
+function writeReviews(data) {
+  fs.writeFileSync(reviewsPath, JSON.stringify(data, null, 2));
+}
+
+// Add a review
+function addReview(agentId, question, priority = 'medium') {
+  const agents = readAgents();
+  const agent = agents.agents.find(a => a.id === agentId);
+  if (!agent) return null;
+
+  const reviews = readReviews();
+  const review = {
+    id: Date.now().toString(),
+    agentId,
+    agentName: agent.name,
+    agentEmoji: agent.emoji,
+    question,
+    priority,
+    status: 'pending',
+    timestamp: new Date().toISOString()
+  };
+  
+  reviews.reviews.unshift(review);
+  reviews.reviews = reviews.reviews.slice(0, 20); // Keep last 20
+  writeReviews(reviews);
+  
+  broadcast({ type: 'review', review });
+  return review;
+}
+
+// Resolve a review
+function resolveReview(reviewId) {
+  const reviews = readReviews();
+  const review = reviews.reviews.find(r => r.id === reviewId);
+  if (review) {
+    review.status = 'resolved';
+    review.resolvedAt = new Date().toISOString();
+    writeReviews(reviews);
+    broadcast({ type: 'review-resolved', reviewId });
+  }
+  return review;
+}
+
 // Add activity to agent
 function addActivity(agentId, type, description, metadata = {}) {
   const data = readAgents();
@@ -161,6 +238,34 @@ app.get('/api/system', async (req, res) => {
   }
 });
 
+// Reviews API
+app.get('/api/reviews', (req, res) => {
+  const reviews = readReviews();
+  res.json(reviews.reviews.filter(r => r.status === 'pending'));
+});
+
+app.post('/api/reviews', (req, res) => {
+  const { agentId, question, priority } = req.body;
+  if (!agentId || !question) {
+    return res.status(400).json({ error: 'agentId and question are required' });
+  }
+  
+  const review = addReview(agentId, question, priority || 'medium');
+  if (!review) {
+    return res.status(404).json({ error: 'Agent not found' });
+  }
+  
+  res.status(201).json(review);
+});
+
+app.patch('/api/reviews/:id/resolve', (req, res) => {
+  const review = resolveReview(req.params.id);
+  if (!review) {
+    return res.status(404).json({ error: 'Review not found' });
+  }
+  res.json(review);
+});
+
 // WebSocket connections
 const clients = new Set();
 
@@ -178,7 +283,8 @@ wss.on('connection', (ws) => {
   
   // Send initial data
   const data = readAgents();
-  ws.send(JSON.stringify({ type: 'init', agents: data.agents }));
+  const reviews = readReviews();
+  ws.send(JSON.stringify({ type: 'init', agents: data.agents, reviews: reviews.reviews.filter(r => r.status === 'pending') }));
   
   ws.on('close', () => {
     clients.delete(ws);
