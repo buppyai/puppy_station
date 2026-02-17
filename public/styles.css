@@ -235,6 +235,89 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Current Task Section - New! */
+.agent-task-section {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 16px;
+  padding: 1rem 1.25rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 0.5rem 0;
+}
+
+.agent-task-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.agent-task-content {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+/* Status variants */
+.status-active .status-dot {
+  background: #3ddc84;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.status-idle .status-dot {
+  background: #f1c40f;
+  animation: none;
+}
+
+.status-busy .status-dot {
+  background: #e74c3c;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* Priority badges */
+.priority-high {
+  background: rgba(231, 76, 60, 0.3) !important;
+  font-weight: 600;
+}
+
+.priority-medium {
+  background: rgba(241, 196, 15, 0.3) !important;
+}
+
+.priority-low {
+  background: rgba(58, 204, 130, 0.3) !important;
+}
+
+/* Activity type colors */
+.activity-item[data-type="error"] {
+  border-left: 3px solid #e74c3c;
+}
+
+.activity-item[data-type="command"] {
+  border-left: 3px solid #3498db;
+}
+
+.activity-item[data-type="system"] {
+  border-left: 3px solid #9b59b6;
+}
+
+.activity-item[data-type="task_update"] {
+  border-left: 3px solid #2ecc71;
+}
+
+/* Agent updated timestamp */
+.agent-updated {
+  margin-left: auto !important;
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
 .agent-work-section {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 16px;

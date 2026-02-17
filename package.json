@@ -9,14 +9,21 @@
     "build": "echo 'Static files served directly'",
     "test": "echo 'Tests not configured'"
   },
-  "keywords": ["dashboard", "agents", "openclaw", "monitoring", "minimal"],
+  "keywords": [
+    "dashboard",
+    "agents",
+    "openclaw",
+    "monitoring",
+    "minimal"
+  ],
   "author": "Buppy 🐕",
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "chokidar": "^3.5.3",
     "express": "^4.18.2",
-    "ws": "^8.14.2",
     "systeminformation": "^5.21.22",
-    "chokidar": "^3.5.3"
+    "ws": "^8.14.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
