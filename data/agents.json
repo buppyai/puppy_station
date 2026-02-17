@@ -1,0 +1,71 @@
+{
+  "agents": [
+    {
+      "id": "buppy",
+      "name": "Buppy",
+      "emoji": "🐕",
+      "role": "Primary Coordinator",
+      "model": "moonshot/kimi-k2.5",
+      "workspace": "~/.openclaw/workspace/",
+      "status": "active",
+      "summary": "Coordinating agent fleet and managing Admin requests",
+      "activities": [
+        {
+          "id": "1",
+          "type": "command",
+          "description": "Set up Puppy Station dashboard",
+          "timestamp": "2026-02-17T02:00:00Z"
+        },
+        {
+          "id": "2",
+          "type": "config_update",
+          "description": "Updated agent configuration",
+          "timestamp": "2026-02-17T01:45:00Z"
+        }
+      ],
+      "lastActive": "2026-02-17T02:00:00Z"
+    },
+    {
+      "id": "zoomie",
+      "name": "Zoomie",
+      "emoji": "⚡",
+      "role": "AIGIS Lead Developer",
+      "model": "nvidia/kimi-k2.5",
+      "workspace": "~/projects/aigis/",
+      "status": "active",
+      "summary": "Implementing iOS Screen Time integration for AIGIS Phase 2",
+      "activities": [
+        {
+          "id": "3",
+          "type": "file_update",
+          "description": "Working on iOS consumer enforcement module",
+          "timestamp": "2026-02-17T01:30:00Z"
+        }
+      ],
+      "lastActive": "2026-02-17T01:30:00Z"
+    },
+    {
+      "id": "mechly",
+      "name": "Mechly",
+      "emoji": "🔧",
+      "role": "Tool Builder & Infrastructure",
+      "model": "moonshot/kimi-k2.5",
+      "workspace": "~/.openclaw/workspace/projects/agent-dashboard/",
+      "status": "active",
+      "summary": "Building Agent Dashboard UI and API endpoints",
+      "activities": [
+        {
+          "id": "4",
+          "type": "command",
+          "description": "Designed dashboard architecture",
+          "timestamp": "2026-02-17T01:15:00Z"
+        }
+      ],
+      "lastActive": "2026-02-17T01:15:00Z"
+    }
+  ],
+  "systemMetrics": {
+    "tokensUsed": 15420,
+    "lastReset": "2026-02-17T00:00:00Z"
+  }
+}
