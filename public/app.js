@@ -183,7 +183,6 @@ class PuppyStation {
           <span class="agent-avatar">${agent.emoji}</span>
           <div class="agent-info">
             <h3>${agent.name}</h3>
-            <span class="agent-role">${agent.role}</span>
           </div>
           <span class="agent-status">
             <span class="status-dot"></span>
@@ -191,18 +190,19 @@ class PuppyStation {
           </span>
         </div>
         
-        <div class="agent-summary">
-          ${agent.summary || 'No current activity'}
+        <div class="agent-role-section">
+          <div class="agent-role-label">Current Role</div>
+          <div class="agent-role">${agent.role}</div>
+        </div>
+        
+        <div class="agent-work-section">
+          <div class="agent-work-label">🎯 Currently Working On</div>
+          <div class="agent-work-content">${agent.summary || 'No current activity'}</div>
         </div>
         
         <div class="agent-meta">
           <span>🤖 ${agent.model.split('/')[1] || agent.model}</span>
           <span>📁 ${this.shortenPath(agent.workspace)}</span>
-        </div>
-        
-        <div class="agent-activity">
-          <div class="activity-title">Recent Activity</div>
-          ${this.renderAgentActivities(agent.activities?.slice(0, 3) || [])}
         </div>
       </article>
     `).join('');
